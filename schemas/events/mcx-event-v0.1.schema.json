@@ -4,7 +4,7 @@
   "title": "MCX Webhook Event",
   "description": "Envelope for all events propagated from the MCX registry to subscribed buyers. Specific event types are differentiated via the 'type' field.",
   "type": "object",
-  "required": ["event_id", "type", "occurred_at", "schema_version", "disclosure_id", "model_id", "provider_name", "payload"],
+  "required": ["event_id", "type", "occurred_at", "schema_version", "disclosure_id", "model_id", "publisher_name", "payload"],
   "properties": {
     "event_id": {
       "type": "string",
@@ -44,9 +44,9 @@
       "type": "string",
       "description": "Stable provider-controlled model identifier."
     },
-    "provider_name": {
+    "publisher_name": {
       "type": "string",
-      "description": "Provider organisation name."
+      "description": "Name of the organisation that published the disclosure record."
     },
     "disclosure_url": {
       "type": "string",

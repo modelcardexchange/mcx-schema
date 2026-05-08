@@ -2,7 +2,7 @@
 
 Human-readable companion to `mcx-event-v0.1.schema.json`. The JSON Schema is the authoritative source for shape; this document explains intent, trigger conditions, and payload semantics.
 
-Every event uses the common envelope (`event_id`, `type`, `occurred_at`, `schema_version`, `disclosure_id`, `model_id`, `provider_name`, optional `disclosure_url`, plus the type-specific `payload`). Subscribers must dedupe on `event_id` — the same logical state change may be redelivered.
+Every event uses the common envelope (`event_id`, `type`, `occurred_at`, `schema_version`, `disclosure_id`, `model_id`, `publisher_name`, optional `disclosure_url`, plus the type-specific `payload`). Subscribers must dedupe on `event_id` — the same logical state change may be redelivered.
 
 This document is part of the MCX schema package, subject to the same Apache 2.0 licence and the same disclaimers in the main README. It is not legal advice.
 

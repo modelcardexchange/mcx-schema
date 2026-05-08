@@ -23,7 +23,7 @@ The schema is independently useful. You can adopt it without using any specific 
 
 A disclosure record describes a single AI model or system across:
 
-- Identification and provider information
+- Publisher identification, EU AI Act role, and contact information
 - EU AI Act risk classification (`risk_class` enum: `prohibited`, `high_risk`, `limited_risk`, `minimal`, `gpai`, `gpai_systemic`)
 - Intended purpose, intended users, and out-of-scope uses
 - Technical architecture and delivery form
@@ -98,7 +98,7 @@ A valid disclosure record always includes 21 top-level fields:
 | 3 | `model_id` | Provider-controlled stable model identifier |
 | 4 | `model_name` | Human-readable model name |
 | 5 | `version` | Released version of the model |
-| 6 | `provider` | Legal entity, contact, EU representative |
+| 6 | `publisher` | Publishing entity, EU AI Act role, contact, EU representative |
 | 7 | `risk_class` | EU AI Act classification |
 | 8 | `model_description` | What the system does |
 | 9 | `intended_purpose` | Article 3(12) intended purpose |
@@ -121,7 +121,7 @@ These conditional rules are encoded in the schema using `if`/`then`/`allOf` and 
 
 ## Identity and attestation
 
-Every disclosure record carries a mandatory `attestation` block: a named individual within the provider organisation who is accountable for the accuracy of the disclosure. The `attestation_status` field distinguishes between `self_attested`, `third_party_verified`, and `notified_body`.
+Every disclosure record carries a mandatory `attestation` block: a named individual within the publishing organisation who is accountable for the accuracy of the disclosure. The `attestation_status` field distinguishes between `self_attested`, `third_party_verified`, and `notified_body`.
 
 Cryptographic signing of disclosure records is planned for a future schema version (see roadmap). v0.1 relies on the named attestation block for accountability.
 

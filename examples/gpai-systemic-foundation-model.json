@@ -6,8 +6,9 @@
   "version": "2.0.0",
   "previous_version": "1.9.4",
 
-  "provider": {
+  "publisher": {
     "name": "Polaris Foundation Models, Inc.",
+    "role": "provider",
     "country": "US",
     "website": "https://polaris-models.example.com",
     "contact": {

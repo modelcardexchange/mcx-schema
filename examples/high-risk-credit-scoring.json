@@ -7,8 +7,9 @@
   "previous_version": "3.2.0",
   "model_family": "Acme Risk Suite",
 
-  "provider": {
+  "publisher": {
     "name": "Acme AI Inc.",
+    "role": "provider",
     "country": "US",
     "website": "https://acme-ai.example.com",
     "contact": {

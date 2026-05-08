@@ -11,7 +11,7 @@
     "model_id",
     "model_name",
     "version",
-    "provider",
+    "publisher",
     "risk_class",
     "model_description",
     "intended_purpose",
@@ -75,23 +75,35 @@
       "type": ["string", "null"]
     },
 
-    "provider": {
-      "description": "Legal entity publishing this disclosure. Maps to Article 16(b), Annex IV §1(a), Annex V §2.",
+    "publisher": {
+      "description": "The entity publishing this disclosure record and their relationship to the AI system under the EU AI Act. The publisher may be the Provider (Article 16), Deployer (Article 26), Authorised Representative (Article 22), Importer (Article 23), Distributor (Article 24), or Product Manufacturer (Article 25). The `role` field identifies which. Maps to Annex IV §1(a), Annex V §2.",
       "type": "object",
-      "required": ["name", "contact"],
+      "required": ["name", "contact", "role"],
       "properties": {
         "name": {
-          "description": "Legal name of the provider organisation.",
+          "description": "Legal name of the publishing organisation.",
           "type": "string",
           "minLength": 1
         },
+        "role": {
+          "description": "The EU AI Act role of the entity publishing this disclosure. Determines which obligations apply. Provider = Article 16; Deployer = Article 26; Authorised Representative = Articles 22/54; Importer = Article 23; Distributor = Article 24; Product Manufacturer = Article 25.",
+          "type": "string",
+          "enum": [
+            "provider",
+            "deployer",
+            "authorised_representative",
+            "importer",
+            "distributor",
+            "product_manufacturer"
+          ]
+        },
         "country": {
-          "description": "ISO 3166-1 alpha-2 country code of the provider's primary jurisdiction.",
+          "description": "ISO 3166-1 alpha-2 country code of the publisher's primary jurisdiction.",
           "type": "string",
           "pattern": "^[A-Z]{2}$"
         },
         "website": {
-          "description": "Official provider website URL.",
+          "description": "Official website URL of the publishing organisation.",
           "type": "string",
           "format": "uri"
         },
@@ -107,7 +119,7 @@
           }
         },
         "eu_authorised_representative": {
-          "description": "EU representative for non-EU providers. Required for high-risk under Article 22 and GPAI under Article 54.",
+          "description": "EU representative for non-EU Providers. Required for high-risk AI systems under Article 22 and GPAI models under Article 54. Populated when the publisher (or the Provider on whose behalf the publisher acts) is established outside the EU.",
           "type": ["object", "null"],
           "properties": {
             "name": { "type": "string" },
@@ -555,7 +567,7 @@
           "minLength": 1
         },
         "attestor_role": {
-          "description": "Role of the attestor within the provider organisation (e.g. Chief Compliance Officer).",
+          "description": "Role of the attestor within the publishing organisation (e.g. Chief Compliance Officer).",
           "type": "string",
           "minLength": 1
         },
@@ -609,6 +621,24 @@
           "items": { "type": "string" }
         }
       }
+    },
+
+    "deployment_context": {
+      "description": "The specific operational environment, user population, and scope of actual use. Article 26(1)–(2). Distinct from the Provider's intended_use_context — this captures what the system is being used for in practice, not what it was designed for.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "fundamental_rights_impact_assessment_ref": {
+      "description": "Reference (URL or document ID) to the fundamental rights impact assessment conducted before putting the system into use. Article 27. Required for public bodies and for deployers of systems used in essential private/public services per Annex III §5.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "intended_use_monitoring": {
+      "description": "The deployer's arrangements for monitoring system performance and intervening when behaviour deviates from intended use, including human oversight assignments and escalation procedures. Article 26(5).",
+      "type": "string",
+      "minLength": 1
     }
   },
 
@@ -682,6 +712,24 @@
           "systemic_risk_flag": { "const": true },
           "foundation_model_flag": { "const": true }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "publisher": {
+            "properties": { "role": { "const": "deployer" } },
+            "required": ["role"]
+          }
+        },
+        "required": ["publisher"]
+      },
+      "then": {
+        "required": [
+          "deployment_context",
+          "fundamental_rights_impact_assessment_ref",
+          "intended_use_monitoring"
+        ]
       }
     }
   ],
