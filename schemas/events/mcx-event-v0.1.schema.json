@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelcardexchange.io/schemas/events/mcx-event-v0.1.schema.json",
+  "title": "MCX Webhook Event",
+  "description": "Envelope for all events propagated from the MCX registry to subscribed buyers. Specific event types are differentiated via the 'type' field.",
+  "type": "object",
+  "required": ["event_id", "type", "occurred_at", "schema_version", "disclosure_id", "model_id", "provider_name", "payload"],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event delivery. Idempotency key — subscribers may receive duplicates and should dedupe on this field."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "disclosure.published",
+        "disclosure.updated",
+        "disclosure.expired",
+        "risk_class.changed",
+        "conformity.changed",
+        "training_data.changed",
+        "incident.reported",
+        "access.granted"
+      ],
+      "description": "The event type. Subscribers may filter on this."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the event occurred at the source registry."
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "MCX schema version of the disclosure this event refers to."
+    },
+    "disclosure_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the disclosure record this event relates to."
+    },
+    "model_id": {
+      "type": "string",
+      "description": "Stable provider-controlled model identifier."
+    },
+    "provider_name": {
+      "type": "string",
+      "description": "Provider organisation name."
+    },
+    "disclosure_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to retrieve the current full disclosure record via the registry API."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-type-specific payload. Shape depends on event type — see schemas/events/types.md for per-type definitions and human-readable trigger semantics.",
+      "oneOf": [
+        { "$ref": "#/$defs/disclosure_published" },
+        { "$ref": "#/$defs/disclosure_updated" },
+        { "$ref": "#/$defs/disclosure_expired" },
+        { "$ref": "#/$defs/risk_class_changed" },
+        { "$ref": "#/$defs/conformity_changed" },
+        { "$ref": "#/$defs/training_data_changed" },
+        { "$ref": "#/$defs/incident_reported" },
+        { "$ref": "#/$defs/access_granted" }
+      ]
+    }
+  },
+
+  "$defs": {
+    "disclosure_published": {
+      "type": "object",
+      "description": "Fired the first time a disclosure record is published.",
+      "required": ["version"],
+      "properties": {
+        "version": { "type": "string" }
+      }
+    },
+    "disclosure_updated": {
+      "type": "object",
+      "description": "Fired on any change to an existing disclosure record. fields_changed lists modified top-level fields.",
+      "required": ["from_version", "to_version", "fields_changed"],
+      "properties": {
+        "from_version": { "type": "string" },
+        "to_version": { "type": "string" },
+        "fields_changed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "summary": { "type": "string" }
+      }
+    },
+    "disclosure_expired": {
+      "type": "object",
+      "description": "Fired when a disclosure record passes its review-by date without update.",
+      "required": ["last_updated_at", "expired_at"],
+      "properties": {
+        "last_updated_at": { "type": "string", "format": "date-time" },
+        "expired_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "risk_class_changed": {
+      "type": "object",
+      "description": "Fired when a model's EU AI Act risk classification changes.",
+      "required": ["from_class", "to_class"],
+      "properties": {
+        "from_class": {
+          "type": "string",
+          "enum": ["prohibited", "high_risk", "limited_risk", "minimal", "gpai", "gpai_systemic"]
+        },
+        "to_class": {
+          "type": "string",
+          "enum": ["prohibited", "high_risk", "limited_risk", "minimal", "gpai", "gpai_systemic"]
+        },
+        "rationale": { "type": "string" }
+      }
+    },
+    "conformity_changed": {
+      "type": "object",
+      "description": "Fired when conformity assessment or CE marking status changes.",
+      "properties": {
+        "from_status": { "type": ["string", "null"] },
+        "to_status": { "type": ["string", "null"] },
+        "ce_marking_status": { "type": ["string", "null"] }
+      }
+    },
+    "training_data_changed": {
+      "type": "object",
+      "description": "Fired when training data sources, scope, or cutoff are materially updated.",
+      "properties": {
+        "summary": { "type": "string" },
+        "new_cutoff_date": { "type": ["string", "null"], "format": "date" }
+      }
+    },
+    "incident_reported": {
+      "type": "object",
+      "description": "Fired when a serious incident under Article 73 is reported.",
+      "required": ["incident_id", "severity"],
+      "properties": {
+        "incident_id": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "serious"]
+        },
+        "summary": { "type": "string" }
+      }
+    },
+    "access_granted": {
+      "type": "object",
+      "description": "Fired when a vendor grants a buyer access to a gated disclosure record.",
+      "properties": {
+        "buyer_organisation_id": { "type": "string" }
+      }
+    }
+  },
+
+  "additionalProperties": false
+}

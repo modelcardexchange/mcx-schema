@@ -1,0 +1,690 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelcardexchange.io/schemas/mcx-disclosure-v0.1.schema.json",
+  "title": "ModelCard Exchange Disclosure Record",
+  "description": "Machine-readable AI model compliance disclosure record. Maps to EU AI Act Annex IV, NIST AI RMF, and ISO 42001 obligations. v0.1 — community draft. Not legal advice. The schema version is identified by the $id URL and by the schema_version field on each record.",
+  "type": "object",
+
+  "required": [
+    "schema_version",
+    "disclosure_id",
+    "model_id",
+    "model_name",
+    "version",
+    "provider",
+    "risk_class",
+    "model_description",
+    "intended_purpose",
+    "intended_users",
+    "out_of_scope_use",
+    "market_delivery_form",
+    "training_data_description",
+    "training_data_source",
+    "evaluation_summary",
+    "known_limitations",
+    "automation_level",
+    "lifecycle_status",
+    "published_at",
+    "last_updated_at",
+    "attestation"
+  ],
+
+  "properties": {
+    "schema_version": {
+      "description": "MCX schema version this record conforms to. For records targeting this schema, must be \"0.1.0\". Newer schema versions will publish their own const.",
+      "type": "string",
+      "const": "0.1.0"
+    },
+
+    "disclosure_id": {
+      "description": "Globally unique identifier for this disclosure record. UUID v4 recommended.",
+      "type": "string",
+      "format": "uuid"
+    },
+
+    "model_id": {
+      "description": "Provider-controlled stable identifier for the AI system. Immutable across versions.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*[a-z0-9]$",
+      "examples": ["acme-credit-risk", "openai.gpt-4o"]
+    },
+
+    "model_name": {
+      "description": "Human-readable name of the AI model or system.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+
+    "version": {
+      "description": "Released version of the AI model this disclosure describes. Semver recommended.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+
+    "previous_version": {
+      "description": "Previous released version, if this is an update. Used for changelog continuity.",
+      "type": ["string", "null"]
+    },
+
+    "model_family": {
+      "description": "Optional product/model family grouping (for multi-model product lines).",
+      "type": ["string", "null"]
+    },
+
+    "provider": {
+      "description": "Legal entity publishing this disclosure. Maps to Article 16(b), Annex IV §1(a), Annex V §2.",
+      "type": "object",
+      "required": ["name", "contact"],
+      "properties": {
+        "name": {
+          "description": "Legal name of the provider organisation.",
+          "type": "string",
+          "minLength": 1
+        },
+        "country": {
+          "description": "ISO 3166-1 alpha-2 country code of the provider's primary jurisdiction.",
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "website": {
+          "description": "Official provider website URL.",
+          "type": "string",
+          "format": "uri"
+        },
+        "contact": {
+          "description": "Compliance contact point. Required by Article 13(3)(a) and Annex V §2.",
+          "type": "object",
+          "required": ["email"],
+          "properties": {
+            "name": { "type": "string" },
+            "role": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "phone": { "type": "string" }
+          }
+        },
+        "eu_authorised_representative": {
+          "description": "EU representative for non-EU providers. Required for high-risk under Article 22 and GPAI under Article 54.",
+          "type": ["object", "null"],
+          "properties": {
+            "name": { "type": "string" },
+            "country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+            "contact_email": { "type": "string", "format": "email" }
+          }
+        },
+        "verified_organisation_id": {
+          "description": "Optional MCX Verified Organisation identifier issued after registry verification.",
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "risk_class": {
+      "description": "Top-level EU AI Act classification. Maps to Article 5 (prohibited), Article 6 (high-risk), Article 50 (transparency obligations — informally 'limited risk'), Article 51 (GPAI).",
+      "type": "string",
+      "enum": [
+        "prohibited",
+        "high_risk",
+        "limited_risk",
+        "minimal",
+        "gpai",
+        "gpai_systemic"
+      ]
+    },
+
+    "annex_iii_category": {
+      "description": "Annex III high-risk category (1–8) if risk_class = high_risk via Annex III.",
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "biometrics",
+        "critical_infrastructure",
+        "education_vocational_training",
+        "employment_workers_management",
+        "essential_private_public_services",
+        "law_enforcement",
+        "migration_asylum_border",
+        "administration_of_justice"
+      ]
+    },
+
+    "annex_i_product_reference": {
+      "description": "Union harmonisation legislation reference if high-risk via product safety (Annex I).",
+      "type": ["string", "null"]
+    },
+
+    "classification_rationale": {
+      "description": "Justification for the assigned risk_class. Required for high-risk and borderline systems (Article 6, Article 7).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "model_description": {
+      "description": "General description of the AI system. Annex IV §1(a).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "model_summary": {
+      "description": "Optional one-line summary for registry display.",
+      "type": ["string", "null"],
+      "maxLength": 280
+    },
+
+    "intended_purpose": {
+      "description": "Official intended purpose. Article 3(12), Annex IV §1(a), Article 13(3)(b)(i).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "intended_users": {
+      "description": "Expected operators or user types. Article 13(3)(b)(i), Article 14(4)(a).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+
+    "intended_use_context": {
+      "description": "Expected deployment context. Annex IV §1(a).",
+      "type": ["string", "null"]
+    },
+
+    "out_of_scope_use": {
+      "description": "Explicit unsupported or prohibited uses. Article 13(3)(b)(iii), Article 9(2)(b).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+
+    "foreseeable_misuse": {
+      "description": "Reasonably foreseeable misuse scenarios. Required for high-risk under Article 9(2)(b) and Article 13(3)(b)(iii).",
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+
+    "deployment_regions": {
+      "description": "Regions or jurisdictions where the system is deployed. Use ISO 3166-1 alpha-2 codes or 'EU', 'global', etc.",
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+
+    "market_delivery_form": {
+      "description": "Delivery method. Annex IV §1(d).",
+      "type": "string",
+      "enum": ["saas_api", "saas_ui", "on_premise", "embedded", "mobile_app", "library_sdk", "model_weights", "other"]
+    },
+
+    "model_type": {
+      "description": "High-level technical category.",
+      "type": ["string", "null"]
+    },
+
+    "model_modality": {
+      "description": "Input/output modality.",
+      "type": ["array", "null"],
+      "items": {
+        "type": "string",
+        "enum": ["text", "image", "audio", "video", "tabular", "code", "multimodal", "other"]
+      }
+    },
+
+    "model_architecture": {
+      "description": "High-level technical architecture. Annex IV §2(d).",
+      "type": ["string", "null"]
+    },
+
+    "upstream_dependencies": {
+      "description": "External systems or models relied upon. Annex IV §1(b), Article 25 (value chain).",
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "provider": { "type": "string" },
+          "version": { "type": "string" },
+          "mcx_disclosure_url": { "type": "string", "format": "uri" }
+        },
+        "required": ["name"]
+      }
+    },
+
+    "training_data_description": {
+      "description": "Description of training data. Article 10(2), Annex IV §2(d).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "training_data_source": {
+      "description": "Origin of training data. Article 10(2)(b), Article 10(3).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["proprietary", "licensed", "public_web", "public_dataset", "synthetic", "user_generated", "purchased", "other"]
+      }
+    },
+
+    "training_time_period": {
+      "description": "Time range represented by training data. Article 10(4).",
+      "type": ["object", "null"],
+      "properties": {
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" },
+        "cutoff": { "type": "string", "format": "date" }
+      }
+    },
+
+    "personal_data_usage": {
+      "description": "Whether personal data is used in training or inference. Article 10(5), GDPR Article 6/9.",
+      "type": ["string", "null"],
+      "enum": [null, "none", "training_only", "inference_only", "both"]
+    },
+
+    "sensitive_data_usage": {
+      "description": "Whether special-category personal data is processed. GDPR Article 9.",
+      "type": ["boolean", "null"]
+    },
+
+    "gdpr_dpia_reference": {
+      "description": "Reference to a Data Protection Impact Assessment, where personal data is processed. GDPR Article 35.",
+      "type": ["string", "null"]
+    },
+
+    "known_data_gaps": {
+      "description": "Known weaknesses, biases, or gaps in training data. Article 10(2)(h).",
+      "type": ["string", "null"]
+    },
+
+    "evaluation_summary": {
+      "description": "Summary of model evaluation. For structured metrics use evaluation_metrics extension. Annex IV §2(g).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "evaluation_metrics": {
+      "description": "Structured performance metrics. Recommended for high-risk and GPAI systems.",
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": ["number", "string"] },
+          "unit": { "type": "string" },
+          "dataset": { "type": "string" },
+          "subgroup": { "type": "string" }
+        }
+      }
+    },
+
+    "accuracy_specification": {
+      "description": "Declared accuracy level in instructions for use. Required for high-risk under Article 15(3).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "known_limitations": {
+      "description": "Known limitations and failure conditions. Article 13(3)(b)(ii)–(iii), Annex IV §3.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "bias_assessment": {
+      "description": "Bias evaluation methodology and results. Required for high-risk under Article 10(2)(f)–(g) and Article 15.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "robustness_testing": {
+      "description": "Adversarial and robustness testing. Required for high-risk under Article 15(4).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "cybersecurity_controls": {
+      "description": "Security controls and measures. Required for high-risk under Article 15(5), Annex IV §2(i).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "automation_level": {
+      "description": "Human oversight classification. Article 14(2)–(4).",
+      "type": "string",
+      "enum": [
+        "human_in_the_loop",
+        "human_on_the_loop",
+        "human_in_command",
+        "fully_autonomous"
+      ]
+    },
+
+    "human_oversight_measures": {
+      "description": "Human intervention controls. Required for high-risk under Article 14, Annex IV §2(f).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "explainability_capabilities": {
+      "description": "Technical capabilities of the system to provide information relevant to explaining its output. Article 13(3)(b)(iv). Where applicable for high-risk systems.",
+      "type": ["string", "null"]
+    },
+
+    "group_specific_performance": {
+      "description": "Performance metrics for specific persons or groups on which the system is intended to be used. Article 13(3)(b)(v). Required when appropriate — particularly for Annex III categories involving persons (credit, employment, justice, law enforcement).",
+      "type": ["string", "null"]
+    },
+
+    "input_data_specifications": {
+      "description": "Specifications for input data at inference time, and any relevant information about training, validation, and testing datasets beyond training_data_description. Article 13(3)(b)(vi). Required when appropriate for high-risk systems.",
+      "type": ["string", "null"]
+    },
+
+    "output_interpretation_guidance": {
+      "description": "Information enabling deployers to interpret outputs and use them appropriately (e.g. confidence scores, decision thresholds, output ranges). Article 13(3)(b)(vii). Where applicable for high-risk systems.",
+      "type": ["string", "null"]
+    },
+
+    "predetermined_changes": {
+      "description": "Changes to the system and its performance predetermined by the provider at the time of initial conformity assessment. Article 13(3)(c). Required for high-risk systems where applicable.",
+      "type": ["string", "null"]
+    },
+
+    "computational_requirements": {
+      "description": "Computational and hardware resources needed to run the AI system. Article 13(3)(e). Required for high-risk systems in instructions for use.",
+      "type": ["string", "null"]
+    },
+
+    "expected_lifetime": {
+      "description": "Expected lifetime of the AI system. Article 13(3)(e). Required for high-risk systems in instructions for use.",
+      "type": ["string", "null"]
+    },
+
+    "maintenance_measures": {
+      "description": "Necessary maintenance and care measures, including frequency, to ensure proper functioning. Article 13(3)(e). Required for high-risk systems in instructions for use.",
+      "type": ["string", "null"]
+    },
+
+    "synthetic_content_disclosure": {
+      "description": "Method for marking AI-generated content. Required for generative systems under Article 50(2).",
+      "type": ["string", "null"]
+    },
+
+    "ai_interaction_disclosure": {
+      "description": "How users are notified they are interacting with AI. Required under Article 50(1) for chatbots and direct user-facing AI.",
+      "type": ["string", "null"]
+    },
+
+    "risk_management_process": {
+      "description": "Ongoing risk management framework. Required for high-risk under Article 9, Annex IV §5.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "monitoring_plan": {
+      "description": "Post-market monitoring process. Required for high-risk under Article 72, Annex IV §9.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "logging_capabilities": {
+      "description": "Logging and audit trace support. Required for high-risk under Article 12, Article 19, Annex IV §2(c).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "technical_documentation_bundle": {
+      "description": "URL or reference to the full Annex IV technical documentation dossier. Article 11.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "conformity_assessment_type": {
+      "description": "Type of conformity assessment route used. Article 43, Annex VI (internal control), Annex VII (QMS + technical doc).",
+      "type": ["string", "null"],
+      "enum": [null, "annex_vi_internal_control", "annex_vii_qms_technical", "not_applicable"]
+    },
+
+    "ce_marking_status": {
+      "description": "CE conformity status for high-risk systems placed on EU market. Article 48.",
+      "type": ["string", "null"],
+      "enum": [null, "affixed", "pending", "not_required", "not_applicable"]
+    },
+
+    "eu_database_registration_id": {
+      "description": "EU database registration identifier (Article 49, Article 71, Annex VIII).",
+      "type": ["string", "null"]
+    },
+
+    "foundation_model_flag": {
+      "description": "True if this is a General-Purpose AI model. Article 3(63), Article 51, Article 53.",
+      "type": "boolean",
+      "default": false
+    },
+
+    "systemic_risk_flag": {
+      "description": "True if classified as systemic-risk GPAI under Article 51.",
+      "type": "boolean",
+      "default": false
+    },
+
+    "gpai_training_data_summary_url": {
+      "description": "Public sufficiently-detailed training data summary. Required for GPAI under Article 53(1)(d).",
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+
+    "copyright_policy": {
+      "description": "Copyright and training data policy, including TDM opt-out. Required for GPAI under Article 53(1)(c).",
+      "type": ["string", "null"]
+    },
+
+    "training_compute_summary": {
+      "description": "Summary of compute resources used for training. Required for systemic-risk GPAI under Article 55(1)(b)–(d) and Article 53(1)(a) read with Annex XI.",
+      "type": ["string", "null"]
+    },
+
+    "lifecycle_status": {
+      "description": "Current operational status of the AI system.",
+      "type": "string",
+      "enum": ["development", "beta", "production", "deprecated", "withdrawn"]
+    },
+
+    "published_at": {
+      "description": "Timestamp this disclosure record was first published.",
+      "type": "string",
+      "format": "date-time"
+    },
+
+    "last_updated_at": {
+      "description": "Timestamp of the most recent update to this disclosure record.",
+      "type": "string",
+      "format": "date-time"
+    },
+
+    "update_changelog": {
+      "description": "Version-by-version changes. Annex IV §6.",
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "summary"],
+        "properties": {
+          "version": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "summary": { "type": "string" },
+          "fields_changed": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "incidents": {
+      "description": "Recorded serious incidents under Article 73. Each incident references a separate report.",
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "required": ["incident_id", "reported_at", "severity"],
+        "properties": {
+          "incident_id": { "type": "string" },
+          "reported_at": { "type": "string", "format": "date-time" },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "serious"]
+          },
+          "summary": { "type": "string" },
+          "remediation_status": {
+            "type": "string",
+            "enum": ["open", "in_progress", "resolved"]
+          }
+        }
+      }
+    },
+
+    "attestation": {
+      "description": "Formal attestation by a named individual that this disclosure is accurate to the best of their knowledge. The MCX registry does not certify content accuracy — the attestor is accountable.",
+      "type": "object",
+      "required": ["attestor_name", "attestor_role", "attestor_email", "attestation_date", "attestation_status"],
+      "properties": {
+        "attestor_name": {
+          "description": "Full name of the natural person attesting.",
+          "type": "string",
+          "minLength": 1
+        },
+        "attestor_role": {
+          "description": "Role of the attestor within the provider organisation (e.g. Chief Compliance Officer).",
+          "type": "string",
+          "minLength": 1
+        },
+        "attestor_email": {
+          "description": "Verifiable email of the attestor.",
+          "type": "string",
+          "format": "email"
+        },
+        "attestation_date": {
+          "description": "Date the attestation was made.",
+          "type": "string",
+          "format": "date"
+        },
+        "attestation_status": {
+          "description": "Type of attestation. self_attested = vendor only. third_party_verified = independent reviewer named. notified_body = formal conformity assessment by a Notified Body.",
+          "type": "string",
+          "enum": ["self_attested", "third_party_verified", "notified_body"]
+        },
+        "third_party_verifier": {
+          "description": "Name of independent verifier, if attestation_status = third_party_verified.",
+          "type": ["string", "null"]
+        },
+        "statement": {
+          "description": "Optional human-readable attestation statement.",
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "framework_mappings": {
+      "description": "Cross-references to other regulatory and assurance frameworks this disclosure satisfies. Each entry lists framework-specific control or subcategory IDs that map to fields in this record.",
+      "type": ["object", "null"],
+      "properties": {
+        "nist_ai_rmf": {
+          "type": ["array", "null"],
+          "description": "NIST AI Risk Management Framework subcategory references (e.g. GOVERN-1.1, MAP-2.3).",
+          "items": { "type": "string" }
+        },
+        "iso_iec_42001": {
+          "type": ["array", "null"],
+          "description": "ISO/IEC 42001 control references.",
+          "items": { "type": "string" }
+        },
+        "iso_iec_23894": {
+          "type": ["array", "null"],
+          "description": "ISO/IEC 23894 (AI risk management) references.",
+          "items": { "type": "string" }
+        },
+        "soc2": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": { "risk_class": { "const": "high_risk" } },
+        "required": ["risk_class"]
+      },
+      "then": {
+        "required": [
+          "classification_rationale",
+          "foreseeable_misuse",
+          "bias_assessment",
+          "robustness_testing",
+          "cybersecurity_controls",
+          "human_oversight_measures",
+          "risk_management_process",
+          "monitoring_plan",
+          "logging_capabilities",
+          "accuracy_specification",
+          "technical_documentation_bundle",
+          "computational_requirements",
+          "expected_lifetime",
+          "maintenance_measures"
+        ],
+        "anyOf": [
+          {
+            "required": ["annex_iii_category"],
+            "properties": { "annex_iii_category": { "not": { "const": null } } }
+          },
+          {
+            "required": ["annex_i_product_reference"],
+            "properties": { "annex_i_product_reference": { "not": { "const": null } } }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "risk_class": { "enum": ["gpai", "gpai_systemic"] }
+        },
+        "required": ["risk_class"]
+      },
+      "then": {
+        "required": [
+          "foundation_model_flag",
+          "gpai_training_data_summary_url",
+          "copyright_policy",
+          "technical_documentation_bundle"
+        ],
+        "properties": {
+          "foundation_model_flag": { "const": true }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "risk_class": { "const": "gpai_systemic" } },
+        "required": ["risk_class"]
+      },
+      "then": {
+        "required": [
+          "systemic_risk_flag",
+          "training_compute_summary",
+          "robustness_testing",
+          "cybersecurity_controls"
+        ],
+        "properties": {
+          "systemic_risk_flag": { "const": true },
+          "foundation_model_flag": { "const": true }
+        }
+      }
+    }
+  ],
+
+  "additionalProperties": false
+}

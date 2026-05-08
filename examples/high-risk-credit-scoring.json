@@ -1,0 +1,169 @@
+{
+  "schema_version": "0.1.0",
+  "disclosure_id": "8f3e5a2c-1b9d-4c6a-9e7f-2a8b4c6d1e3f",
+  "model_id": "acme-credit-risk",
+  "model_name": "Acme Credit Risk Scorer",
+  "version": "3.2.1",
+  "previous_version": "3.2.0",
+  "model_family": "Acme Risk Suite",
+
+  "provider": {
+    "name": "Acme AI Inc.",
+    "country": "US",
+    "website": "https://acme-ai.example.com",
+    "contact": {
+      "name": "Maria Schultz",
+      "role": "Head of Compliance",
+      "email": "compliance@acme-ai.example.com"
+    },
+    "eu_authorised_representative": {
+      "name": "Acme AI EU Compliance B.V.",
+      "country": "NL",
+      "contact_email": "eu-rep@acme-ai.example.com"
+    },
+    "verified_organisation_id": "mcx-org-acme-001"
+  },
+
+  "risk_class": "high_risk",
+  "annex_iii_category": "essential_private_public_services",
+  "classification_rationale": "System evaluates creditworthiness of natural persons under Annex III §5(b). Output materially influences credit decisions made by financial institutions.",
+
+  "model_description": "Gradient-boosted classification model that produces a creditworthiness score (0–1000) from applicant financial history, employment data, and bureau reports. Used by partner banks during loan origination.",
+  "model_summary": "Credit risk scoring model for retail loan origination in EU markets.",
+
+  "intended_purpose": "Estimate the probability of default within 12 months for retail loan applicants. Output is one of several inputs to a human-reviewed credit decision; never sole basis for refusal.",
+  "intended_users": [
+    "Credit underwriters at licensed financial institutions",
+    "Risk analysts at partner banks"
+  ],
+  "intended_use_context": "Embedded in loan origination workflows of EU-regulated retail banks.",
+
+  "out_of_scope_use": [
+    "Sole-basis automated refusal of credit (Article 22 GDPR)",
+    "Use outside retail consumer lending",
+    "Use in jurisdictions outside the EEA without re-validation",
+    "Pricing of insurance products",
+    "Employment, housing, or any non-credit decisions"
+  ],
+
+  "foreseeable_misuse": [
+    "Treating the score as a deterministic decision rather than a probabilistic input",
+    "Using historical scores after material changes to the underlying model without re-evaluation"
+  ],
+
+  "deployment_regions": ["EU"],
+  "market_delivery_form": "saas_api",
+
+  "model_type": "Gradient-boosted decision trees (XGBoost)",
+  "model_modality": ["tabular"],
+  "model_architecture": "Ensemble of 1,200 boosted trees with monotonicity constraints on protected proxy features. Calibrated using isotonic regression.",
+
+  "upstream_dependencies": [
+    {
+      "name": "Bureau Data Feed",
+      "provider": "Major Credit Bureau",
+      "version": "2026-Q1"
+    }
+  ],
+
+  "training_data_description": "Anonymised retail loan portfolio of approximately 4.8 million observations from EU partner banks, covering originations between January 2018 and June 2025. Outcome labelled at 12-month horizon. Class balance: 7.2% default rate.",
+  "training_data_source": ["licensed", "proprietary"],
+  "training_time_period": {
+    "start": "2018-01-01",
+    "end": "2025-06-30",
+    "cutoff": "2025-09-15"
+  },
+
+  "personal_data_usage": "training_only",
+  "sensitive_data_usage": false,
+  "gdpr_dpia_reference": "Internal DPIA-2025-CR-014, last reviewed 2026-02-18.",
+
+  "known_data_gaps": "Lower coverage of self-employed applicants and applicants with thin credit files. Geographic coverage skewed toward Western Europe; performance in CEE markets validated separately on smaller cohorts.",
+
+  "evaluation_summary": "Holdout AUC of 0.82 on 2025 validation cohort. Calibration drift below 3% across deciles. Subgroup analysis performed across age bands, employment status, and geographic regions. Full evaluation methodology in technical documentation bundle.",
+
+  "evaluation_metrics": [
+    { "name": "AUC-ROC", "value": 0.82, "dataset": "2025 holdout" },
+    { "name": "KS statistic", "value": 0.48, "dataset": "2025 holdout" },
+    { "name": "Calibration error", "value": 0.027, "dataset": "2025 holdout" }
+  ],
+
+  "accuracy_specification": "Declared performance: AUC ≥ 0.78 across all certified deployment regions, measured on rolling 90-day post-deployment cohorts. Below this threshold triggers mandatory re-validation.",
+
+  "known_limitations": "Performance degrades for applicants with fewer than three reported credit events. Model has not been validated on applicants under 21 years of age. Output is not stable under macro-economic regime changes; quarterly re-validation required.",
+
+  "bias_assessment": "Subgroup performance evaluated across age bands (18–25, 26–40, 41–60, 60+), gender (where lawfully available), and geographic region. Demographic parity ratio computed quarterly. Maximum subgroup AUC gap observed: 0.04. Detailed bias report referenced in technical_documentation_bundle.",
+
+  "robustness_testing": "Stress-tested against adversarial input perturbations (±10% on numeric features), missing-data scenarios, and synthetic distribution shift. Performance degradation bounds documented in §4 of technical documentation bundle.",
+
+  "cybersecurity_controls": "ISO/IEC 27001 certified hosting. API authenticated via mTLS. Training data and model artefacts encrypted at rest (AES-256). Model registry access logged and reviewed quarterly. Threat model addresses data poisoning, model extraction, and adversarial inputs.",
+
+  "automation_level": "human_in_the_loop",
+  "human_oversight_measures": "Score is one of several inputs; final credit decision is made by a human underwriter. Underwriter UI displays the score, top contributing features, and known limitations. Underwriters receive mandatory training on model output interpretation before access is granted.",
+
+  "explainability_capabilities": "The system provides SHAP-based feature-contribution scores for each prediction, identifying the top 5 contributing features and their direction of influence. Explanations are available via the /explain endpoint and surfaced in the underwriter UI. Not a full counterfactual explanation; explanations are approximate attributions on the ensemble output.",
+
+  "group_specific_performance": "AUC by subgroup on 2025 holdout: age 18–25: 0.78; age 26–40: 0.83; age 41–60: 0.84; age 60+: 0.81. Employment status — employed: 0.84; self-employed: 0.79; unemployed: 0.77. Geographic region — Western Europe: 0.83; CEE: 0.80. Full subgroup analysis in the technical documentation bundle.",
+
+  "input_data_specifications": "Required input features: applicant bureau score (integer 0–999), total revolving balance (EUR), months since oldest account (integer), number of credit enquiries in last 6 months (integer), employment status (enum). Optional enrichment: income band, property ownership status. Missing features are imputed using median values from the training cohort; imputation flags are included in model output. Input schema version 3.2 documented in the technical documentation bundle.",
+
+  "output_interpretation_guidance": "Output is a creditworthiness score in the range 0–1000. Higher scores indicate lower predicted default probability. Score bands: 750–1000 = low risk; 500–749 = medium risk; 0–499 = elevated risk. The score should be interpreted alongside the SHAP feature contributions. Underwriters must not treat the score as a sole deterministic basis for refusal (prohibited under Article 22 GDPR). Confidence interval is ±12 points at 1 SD across the validation cohort.",
+
+  "predetermined_changes": "The provider reserves the right to apply quarterly recalibration of the output score distribution to address calibration drift, without retraining. Material retraining events (change in feature set, training data refresh, architecture change) will be disclosed via a new schema version. Recalibrations are notified to deployers 30 days in advance.",
+
+  "computational_requirements": "Inference: <50ms P99 latency on a single CPU core (Intel Xeon or equivalent). No GPU required for inference. Model artefact size: 420 MB. Minimum 2 GB RAM per inference worker. Batch scoring available for up to 10,000 records per API call. No on-premise deployment option; delivered as SaaS API only.",
+
+  "expected_lifetime": "The v3.x model series is supported until 2028-12-31 at minimum. The provider commits to a minimum 12-month deprecation notice period before end-of-life. After end-of-life, the model will not receive monitoring updates or bias corrections.",
+
+  "maintenance_measures": "Quarterly recalibration to address distribution drift. Annual full revalidation cycle (retraining on refreshed data). Customers must update to new major versions within 6 months of release. API versioning ensures backwards-compatible access during migration windows. Deployers are notified of all maintenance events via the MCX webhook (disclosure.updated event).",
+
+  "risk_management_process": "Risk management framework follows ISO/IEC 23894 and Article 9. Quarterly risk reviews. Documented residual risks include concept drift in macro-economic downturns and reduced performance on thin-file applicants.",
+
+  "monitoring_plan": "Post-market monitoring per Article 72: monthly performance tracking against accuracy specification, weekly drift detection on top 20 features, automatic alerting on calibration drift > 5%. Quarterly re-validation. Annual full revalidation cycle.",
+
+  "logging_capabilities": "All inference requests logged with: timestamp, model version, input feature hash, output score, and decision band. Logs retained for 24 months. Logs are append-only and tamper-evident via hash-chaining. Article 12-compliant.",
+
+  "technical_documentation_bundle": "https://acme-ai.example.com/compliance/credit-risk-v3-annex-iv.pdf",
+  "conformity_assessment_type": "annex_vi_internal_control",
+  "ce_marking_status": "affixed",
+  "eu_database_registration_id": "EUDB-AI-2026-0427-AC",
+
+  "foundation_model_flag": false,
+  "systemic_risk_flag": false,
+
+  "lifecycle_status": "production",
+  "published_at": "2026-03-01T09:00:00Z",
+  "last_updated_at": "2026-04-22T14:30:00Z",
+
+  "update_changelog": [
+    {
+      "version": "3.2.1",
+      "date": "2026-04-22",
+      "summary": "Recalibration after Q1 2026 monitoring detected slight drift in calibration error.",
+      "fields_changed": ["evaluation_metrics", "accuracy_specification"]
+    },
+    {
+      "version": "3.2.0",
+      "date": "2026-03-01",
+      "summary": "Initial published version of v3.2 series. Major retraining on 2018–2025 data.",
+      "fields_changed": []
+    }
+  ],
+
+  "incidents": [],
+
+  "attestation": {
+    "attestor_name": "Maria Schultz",
+    "attestor_role": "Head of Compliance, Acme AI Inc.",
+    "attestor_email": "compliance@acme-ai.example.com",
+    "attestation_date": "2026-04-22",
+    "attestation_status": "self_attested",
+    "statement": "I attest that the information in this disclosure record is accurate to the best of my knowledge as of the attestation date and reflects the current state of the AI system."
+  },
+
+  "framework_mappings": {
+    "nist_ai_rmf": ["GOVERN-1.1", "MAP-2.3", "MEASURE-2.7", "MANAGE-2.2"],
+    "iso_iec_42001": ["A.6.2.6", "A.7.4", "A.8.2"],
+    "iso_iec_23894": ["6.4.2", "6.5.3"]
+  }
+}

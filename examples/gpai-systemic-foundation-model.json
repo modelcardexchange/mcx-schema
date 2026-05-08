@@ -1,0 +1,145 @@
+{
+  "schema_version": "0.1.0",
+  "disclosure_id": "5a8b9c2d-3e4f-4a1b-9c2d-7e8f6a5b4c3d",
+  "model_id": "polaris-llm-70b",
+  "model_name": "Polaris LLM 70B",
+  "version": "2.0.0",
+  "previous_version": "1.9.4",
+
+  "provider": {
+    "name": "Polaris Foundation Models, Inc.",
+    "country": "US",
+    "website": "https://polaris-models.example.com",
+    "contact": {
+      "name": "Dr Anya Patel",
+      "role": "Head of Model Safety and Governance",
+      "email": "governance@polaris-models.example.com"
+    },
+    "eu_authorised_representative": {
+      "name": "Polaris EU GmbH",
+      "country": "DE",
+      "contact_email": "eu-rep@polaris-models.example.com"
+    },
+    "verified_organisation_id": "mcx-org-polaris-001"
+  },
+
+  "risk_class": "gpai_systemic",
+
+  "model_description": "Polaris LLM 70B is a 70-billion-parameter dense decoder-only transformer language model. Trained at >10^25 FLOPs and meeting the Article 51 systemic-risk presumption threshold. Distributed via SaaS API only; weights are not released. Notification of systemic-risk classification was filed with the European Commission AI Office on 2026-02-12.",
+  "model_summary": "Hosted-only 70B parameter LLM at systemic-risk compute scale.",
+
+  "intended_purpose": "General-purpose multilingual text generation, summarisation, classification, and tool use for downstream application developers. Customers use it through Polaris's hosted inference API.",
+  "intended_users": [
+    "Enterprise customers building applications via the Polaris API",
+    "Application developers integrating LLM capabilities into downstream products",
+    "Research partners under approved access agreements"
+  ],
+  "intended_use_context": "Hosted inference. Downstream deployers retain responsibility for their own task-specific evaluation, mitigation, deployment-specific Article 50 disclosures, and any Article 27 fundamental-rights impact assessments where applicable.",
+
+  "out_of_scope_use": [
+    "Prohibited practices under Article 5 of the EU AI Act",
+    "Sole-basis decisions in high-risk Annex III contexts (employment, credit, education, justice) without independent evaluation, human oversight, and appropriate guardrails by the deployer",
+    "Generation of CSAM, terrorism content, or other unlawful material",
+    "Direct medical diagnosis, legal advice, or financial advice without licensed professional review",
+    "Use to materially deceive identifiable individuals (deepfakes of real people without consent)"
+  ],
+
+  "foreseeable_misuse": [
+    "Use to generate large volumes of disinformation or coordinated inauthentic content",
+    "Use as a sole-basis decision-maker in high-stakes contexts where Article 14 human oversight requirements would apply if deployed downstream",
+    "Use to produce text that imitates a specific identifiable person without that person's consent",
+    "Bypass attempts via jailbreak prompts to produce content barred by Article 5"
+  ],
+
+  "deployment_regions": ["global"],
+  "market_delivery_form": "saas_api",
+
+  "model_type": "Decoder-only transformer language model (dense)",
+  "model_modality": ["text"],
+  "model_architecture": "70B parameter dense decoder-only transformer with grouped-query attention, RoPE positional embeddings, 128K context window. Trained on a multilingual web corpus with curriculum learning and a final RLHF stage.",
+
+  "training_data_description": "Mixed multilingual corpus drawn from filtered Common Crawl, licensed editorial content, public-domain literature, code repositories, and curated synthetic instruction data. Total ~12 trillion tokens after deduplication, quality filtering, and TDM-opt-out enforcement. Detailed composition in the public training-data summary URL. Post-training fine-tuning uses an additional ~80B token instruction-following corpus.",
+  "training_data_source": ["public_web", "public_dataset", "licensed", "synthetic"],
+  "training_time_period": {
+    "start": "2022-01-01",
+    "end": "2025-11-30",
+    "cutoff": "2025-12-31"
+  },
+
+  "personal_data_usage": "training_only",
+  "sensitive_data_usage": false,
+
+  "known_data_gaps": "Coverage of low-resource languages (notably Sub-Saharan African and Indigenous languages) is materially lower than English, Mandarin, Spanish and major European languages. Code corpus is heavily weighted toward Python, JavaScript, Rust and Go.",
+
+  "evaluation_summary": "Evaluated on standard LLM benchmarks (MMLU, HellaSwag, ARC-Challenge, HumanEval, MBPP, MGSM, TyDi-QA), agentic-tool-use benchmarks (TauBench, GAIA), and safety benchmarks (BBQ, BOLD, ToxiGen). Adversarial red-team evaluations performed by an external panel of 14 evaluators across CBRN-uplift, cyber-offence, deception, and self-replication risk axes per the GPAI Code of Practice template. Full evaluation report linked in the technical documentation bundle.",
+
+  "evaluation_metrics": [
+    { "name": "MMLU (5-shot)", "value": 0.83, "dataset": "MMLU" },
+    { "name": "HumanEval (pass@1)", "value": 0.71, "dataset": "HumanEval" },
+    { "name": "MGSM avg", "value": 0.74, "dataset": "MGSM 10-language" },
+    { "name": "Refusal rate on harmful prompts", "value": 0.97, "dataset": "Internal red-team v2" },
+    { "name": "CBRN-uplift evaluation score", "value": "no material uplift detected", "dataset": "External red-team panel" }
+  ],
+
+  "known_limitations": "Standard LLM limitations apply: hallucination, sensitivity to prompt phrasing, calibration drift on long-context inputs, and limited reasoning beyond training distribution. Multilingual performance varies materially by language. Tool-use reliability degrades on tools not seen in instruction tuning. Knowledge cutoff: December 2025.",
+
+  "automation_level": "human_on_the_loop",
+
+  "robustness_testing": "Adversarial testing performed by an external red-team panel of 14 evaluators across CBRN-uplift, cyber-offence, deception, and self-replication risk axes per the GPAI Code of Practice evaluation template. Jailbreak resistance tested using 3,400 adversarial prompts across 12 attack categories. Model evaluated against standardised protocols including WMDP, CyberSecEval, and a custom deception benchmark. Full adversarial evaluation report included in the technical documentation bundle. Per Article 55(1)(a), evaluations are repeated prior to each major version release.",
+
+  "cybersecurity_controls": "ISO/IEC 27001 certified infrastructure. Inference endpoints served behind mTLS-authenticated API gateway. Model weights encrypted at rest (AES-256) and in transit. Training and post-training artefacts stored in an air-gapped environment with hardware security module (HSM)-backed key management. Model registry access is role-gated, logged, and audited quarterly. Threat model addresses data poisoning, model extraction, prompt injection, adversarial inputs, and supply-chain attacks on pre-trained components. Security posture is independently assessed annually. Per Article 55(1)(d).",
+
+  "synthetic_content_disclosure": "Outputs include a machine-readable provenance signal compatible with C2PA at the API layer. Polaris also returns an X-Polaris-Generated header on every API response identifying the response as AI-generated. Deployers integrating the API must implement Article 50(2) marking in their downstream surfaces.",
+
+  "ai_interaction_disclosure": "When customers expose the model in a conversational interface, the Polaris terms of service require them to notify end users they are interacting with an AI system at session start. Polaris's hosted Playground UI implements this directly.",
+
+  "foundation_model_flag": true,
+  "systemic_risk_flag": true,
+  "gpai_training_data_summary_url": "https://polaris-models.example.com/disclosures/polaris-llm-70b/training-data-summary-v2.0.html",
+  "copyright_policy": "Training corpus respects robots.txt and TDM opt-out signals (Article 4 of EU Directive 2019/790). Opted-out content was excluded prior to training. A full copyright policy and rightsholder complaint mechanism is published at https://polaris-models.example.com/copyright-policy. Policy compliance is independently audited annually.",
+  "training_compute_summary": "Approximately 4.2 × 10^25 floating-point operations across pre-training and post-training. Pre-training used a cluster of ~12,000 H100-class accelerators over 90 days. Energy mix: 88% renewable matched on a 24/7 basis at the primary training site. Detailed compute and energy breakdown in the technical documentation bundle.",
+  "technical_documentation_bundle": "https://polaris-models.example.com/docs/polaris-llm-70b/annex-xi-technical-documentation",
+
+  "lifecycle_status": "production",
+  "published_at": "2026-03-04T09:00:00Z",
+  "last_updated_at": "2026-04-30T16:00:00Z",
+
+  "update_changelog": [
+    {
+      "version": "2.0.0",
+      "date": "2026-03-04",
+      "summary": "Initial published disclosure for v2.0. Systemic-risk classification under Article 51 confirmed; Commission notification filed 2026-02-12.",
+      "fields_changed": []
+    },
+    {
+      "version": "2.0.1",
+      "date": "2026-04-30",
+      "summary": "Updated evaluation metrics with results from external red-team v2; refined automation_level guidance after deployer feedback.",
+      "fields_changed": ["evaluation_metrics", "evaluation_summary", "automation_level"]
+    }
+  ],
+
+  "incidents": [
+    {
+      "incident_id": "POL-INC-2026-007",
+      "reported_at": "2026-04-12T14:00:00Z",
+      "severity": "medium",
+      "summary": "Jailbreak vector discovered allowing partial bypass of Article 5 prohibited-practices refusal layer. Mitigation deployed within 48 hours; no evidence of harm in production traffic.",
+      "remediation_status": "resolved"
+    }
+  ],
+
+  "attestation": {
+    "attestor_name": "Dr Anya Patel",
+    "attestor_role": "Head of Model Safety and Governance, Polaris Foundation Models, Inc.",
+    "attestor_email": "governance@polaris-models.example.com",
+    "attestation_date": "2026-04-30",
+    "attestation_status": "self_attested",
+    "statement": "I attest that this disclosure is accurate to the best of my knowledge as of the attestation date. Polaris has notified the European Commission AI Office of the systemic-risk classification per Article 52(1) on 2026-02-12 and is a signatory to the GPAI Code of Practice."
+  },
+
+  "framework_mappings": {
+    "nist_ai_rmf": ["GOVERN-1.1", "GOVERN-3.2", "MAP-1.6", "MEASURE-2.7", "MEASURE-2.11", "MANAGE-2.4"],
+    "iso_iec_42001": ["A.6.2.6", "A.7.4", "A.8.2", "A.9.2"]
+  }
+}
