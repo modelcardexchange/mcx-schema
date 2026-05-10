@@ -630,7 +630,7 @@
     },
 
     "fundamental_rights_impact_assessment_ref": {
-      "description": "Reference (URL or document ID) to the fundamental rights impact assessment conducted before putting the system into use. Article 27. Required for public bodies and for deployers of systems used in essential private/public services per Annex III §5.",
+      "description": "Reference (URL or document ID) to the fundamental rights impact assessment conducted before putting the system into use. Article 27. Conditionally required when publisher.role = 'deployer' AND risk_class = 'high_risk'. Article 27 applies to deployers that are bodies governed by public law or private entities providing public services, and to deployers of high-risk systems under Annex III point 5(b) and (c).",
       "type": "string",
       "minLength": 1
     },
@@ -727,8 +727,24 @@
       "then": {
         "required": [
           "deployment_context",
-          "fundamental_rights_impact_assessment_ref",
           "intended_use_monitoring"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "risk_class": { "const": "high_risk" },
+          "publisher": {
+            "properties": { "role": { "const": "deployer" } },
+            "required": ["role"]
+          }
+        },
+        "required": ["risk_class", "publisher"]
+      },
+      "then": {
+        "required": [
+          "fundamental_rights_impact_assessment_ref"
         ]
       }
     }

@@ -86,6 +86,7 @@ python3 scripts/validate.py
 - [`examples/high-risk-credit-scoring.json`](examples/high-risk-credit-scoring.json) — fully populated high-risk disclosure under Annex III §5(b). Non-EU provider with `eu_authorised_representative` populated under Article 22.
 - [`examples/gpai-foundation-model.json`](examples/gpai-foundation-model.json) — open-weights GPAI disclosure aligned to Article 53.
 - [`examples/gpai-systemic-foundation-model.json`](examples/gpai-systemic-foundation-model.json) — systemic-risk GPAI disclosure under Article 51, with `training_compute_summary`, `systemic_risk_flag`, and a populated incidents array demonstrating the conditional rules and the incident object shape.
+- [`examples/deployer-high-risk-credit-scoring.json`](examples/deployer-high-risk-credit-scoring.json) — deployer disclosure for a high-risk credit scoring system under Annex III §5(b). Exercises the `publisher.role = "deployer"` conditionality path, including `deployment_context`, `intended_use_monitoring`, and `fundamental_rights_impact_assessment_ref` (required for deployers of high-risk systems under Article 27).
 
 ## The Core profile
 
@@ -116,6 +117,8 @@ A valid disclosure record always includes 21 top-level fields:
 | 21 | `attestation` | Named human accountable for accuracy |
 
 When `risk_class = high_risk`, fifteen additional fields become required (foreseeable misuse, bias assessment, human oversight measures, monitoring plan, computational requirements, expected lifetime, maintenance measures, etc.). When `risk_class = gpai` or `gpai_systemic`, four more become required (training data summary URL, copyright policy, GPAI flag, technical documentation bundle). When `risk_class = gpai_systemic`, four further fields become required (systemic risk flag, training compute summary, robustness testing, cybersecurity controls).
+
+When `publisher.role = "deployer"`, two deployer-specific fields become required (`deployment_context`, `intended_use_monitoring`). When the deployer is also publishing a high-risk record (`risk_class = "high_risk"`), `fundamental_rights_impact_assessment_ref` becomes additionally required per Article 27.
 
 These conditional rules are encoded in the schema using `if`/`then`/`allOf` and enforced automatically by any standard JSON Schema validator.
 

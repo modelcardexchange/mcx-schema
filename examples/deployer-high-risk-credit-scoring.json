@@ -1,0 +1,158 @@
+{
+  "schema_version": "0.1.0",
+  "disclosure_id": "c4a1e8f7-3d2b-4a9e-b5c6-7f8d9e0a1b2c",
+  "model_id": "acme-credit-risk",
+  "model_name": "Acme Credit Risk Scorer",
+  "version": "3.2.1",
+
+  "publisher": {
+    "name": "Eurobank Retail S.A.",
+    "role": "deployer",
+    "country": "DE",
+    "website": "https://eurobank-retail.example.com",
+    "contact": {
+      "name": "Klaus Weber",
+      "role": "Head of AI Risk, Eurobank Retail S.A.",
+      "email": "ai-risk@eurobank-retail.example.com"
+    }
+  },
+
+  "risk_class": "high_risk",
+  "annex_iii_category": "essential_private_public_services",
+  "classification_rationale": "Deployed as a credit scoring input under Annex III §5(b). System evaluates creditworthiness of natural persons for retail loan origination decisions.",
+
+  "model_description": "Third-party credit risk scoring model (Acme Credit Risk Scorer v3.2.1) deployed within Eurobank Retail's loan origination workflow. The model produces a creditworthiness score used as one of several inputs to human-reviewed credit decisions.",
+  "model_summary": "Deployer disclosure for Acme Credit Risk Scorer used in retail lending.",
+
+  "intended_purpose": "Estimate probability of default within 12 months for retail loan applicants in the German market. Score is one of several inputs to a human-reviewed credit decision; never sole basis for refusal.",
+  "intended_users": [
+    "Credit underwriters at Eurobank Retail S.A.",
+    "Senior risk analysts reviewing escalated applications"
+  ],
+  "intended_use_context": "Integrated into Eurobank Retail's internal loan origination platform for German retail banking customers.",
+
+  "out_of_scope_use": [
+    "Sole-basis automated refusal of credit (prohibited under Article 22 GDPR)",
+    "Use outside German retail consumer lending without re-validation",
+    "Pricing of insurance or investment products",
+    "Employment, housing, or any non-credit decisions"
+  ],
+
+  "foreseeable_misuse": [
+    "Treating the score as deterministic rather than probabilistic",
+    "Using scores for customer segments not covered by the provider's validation (e.g. business lending)"
+  ],
+
+  "deployment_regions": ["DE"],
+  "market_delivery_form": "saas_api",
+
+  "model_type": "Gradient-boosted decision trees (XGBoost)",
+  "model_modality": ["tabular"],
+
+  "upstream_dependencies": [
+    {
+      "name": "Acme Credit Risk Scorer",
+      "provider": "Acme AI Inc.",
+      "version": "3.2.1",
+      "mcx_disclosure_url": "https://registry.modelcardexchange.io/disclosures/dsc_01J6X4M9"
+    }
+  ],
+
+  "training_data_description": "Training performed by the provider (Acme AI Inc.). See provider disclosure for full training data description. Eurobank Retail did not contribute training data. The model was validated on a 6-month sample of 12,000 Eurobank Retail applications before deployment.",
+  "training_data_source": ["licensed", "proprietary"],
+
+  "personal_data_usage": "inference_only",
+  "sensitive_data_usage": false,
+  "gdpr_dpia_reference": "Eurobank Retail DPIA-2026-CR-003, approved 2026-01-15 by DPO.",
+
+  "evaluation_summary": "Provider-reported holdout AUC of 0.82. Eurobank Retail performed independent validation on 12,000 German retail applications (Q3–Q4 2025): AUC 0.80, KS 0.45. Subgroup analysis by age and employment status showed no disparate impact exceeding internal thresholds.",
+
+  "evaluation_metrics": [
+    { "name": "AUC-ROC", "value": 0.80, "dataset": "Eurobank DE validation cohort 2025" },
+    { "name": "KS statistic", "value": 0.45, "dataset": "Eurobank DE validation cohort 2025" }
+  ],
+
+  "accuracy_specification": "Internal acceptance threshold: AUC ≥ 0.78 on rolling 90-day German retail cohorts. Below this threshold triggers escalation to Risk Committee and potential model suspension.",
+
+  "known_limitations": "Performance degrades for applicants with fewer than three credit events. Not validated for applicants under 21. Model was trained primarily on Western European data; performance on recently relocated applicants with non-EU credit history is unvalidated.",
+
+  "bias_assessment": "Independent subgroup analysis performed by Eurobank Retail across age bands (18–25, 26–40, 41–60, 60+), employment status, and geographic region within Germany. Maximum AUC gap: 0.05 (age 18–25 vs 26–40). No disparate impact exceeding Eurobank's 80% rule threshold.",
+
+  "robustness_testing": "Validated against missing-data scenarios common in German retail applications (missing employment history, incomplete bureau data). Performance degradation within acceptable bounds. Adversarial robustness testing delegated to provider; results reviewed and accepted.",
+
+  "cybersecurity_controls": "API access via mTLS over Eurobank's internal network. No external exposure. Inference logs encrypted at rest. Access restricted to loan origination service accounts. Reviewed as part of Eurobank's ISO 27001 programme.",
+
+  "automation_level": "human_in_the_loop",
+  "human_oversight_measures": "Score displayed alongside top contributing features and known limitations. Underwriters must complete mandatory training module before access. All automated refusals prohibited — human underwriter makes final decision. Escalation path to Senior Risk Analyst for scores in the 400–550 range.",
+
+  "explainability_capabilities": "SHAP feature contributions displayed in the underwriter UI via Acme's /explain endpoint. Top 5 contributing features shown with direction of influence.",
+
+  "group_specific_performance": "Eurobank validation: AUC by age — 18–25: 0.76; 26–40: 0.81; 41–60: 0.82; 60+: 0.79. Employment — employed: 0.82; self-employed: 0.77.",
+
+  "input_data_specifications": "Applicant bureau score (integer 0–999), total revolving balance (EUR), months since oldest account (integer), number of credit enquiries in last 6 months (integer), employment status (enum). Eurobank maps internal data fields to Acme's input schema via an integration adapter.",
+
+  "output_interpretation_guidance": "Score 0–1000. Bands: 750–1000 = low risk; 500–749 = medium risk; 0–499 = elevated risk. Underwriters must not treat score as sole basis for refusal. Confidence interval ±12 points at 1 SD per provider specification.",
+
+  "predetermined_changes": "Provider may apply quarterly recalibrations. Eurobank will re-validate on internal cohort after each provider recalibration before accepting the updated model version.",
+
+  "computational_requirements": "Consumed as SaaS API. No on-premise compute required by Eurobank. API latency <50ms P99 per provider SLA.",
+
+  "expected_lifetime": "Provider commits to v3.x support until 2028-12-31. Eurobank will migrate to successor version within 6 months of provider deprecation notice.",
+
+  "maintenance_measures": "Quarterly re-validation on fresh Eurobank cohort. Monthly drift monitoring on top 10 features. Annual full review by Risk Committee. Eurobank subscribes to provider's MCX webhook for disclosure.updated events.",
+
+  "risk_management_process": "Integrated into Eurobank Retail's AI risk management framework (aligned to ISO/IEC 23894 and BaFin guidance on AI in financial services). Quarterly risk reviews. Residual risks include concept drift in macro-economic downturns and provider model changes between re-validation cycles.",
+
+  "monitoring_plan": "Monthly performance tracking against AUC ≥ 0.78 threshold. Weekly drift detection on top 10 features. Automatic alerting on calibration drift > 5%. Quarterly re-validation report to Risk Committee.",
+
+  "logging_capabilities": "All inference requests logged with timestamp, model version, input feature hash, output score, decision band, and underwriter decision. Logs retained for 36 months per Eurobank retention policy. Logs stored in Eurobank's compliance data lake, accessible to internal audit.",
+
+  "technical_documentation_bundle": "https://eurobank-retail.example.com/compliance/ai-systems/acme-credit-risk-v3-deployer-dossier.pdf",
+  "conformity_assessment_type": "annex_vi_internal_control",
+  "ce_marking_status": "not_applicable",
+  "eu_database_registration_id": "EUDB-AI-2026-0891-EB",
+
+  "foundation_model_flag": false,
+  "systemic_risk_flag": false,
+
+  "deployment_context": "Deployed within Eurobank Retail S.A.'s internal loan origination platform, serving German retail banking customers applying for personal loans, mortgage pre-approvals, and credit line increases. The system is accessed by approximately 120 credit underwriters across 8 regional offices. Average daily volume: 450 inference requests. The model score is presented alongside other risk signals (bureau report, income verification, existing relationship data) in a unified underwriter dashboard.",
+
+  "fundamental_rights_impact_assessment_ref": "Eurobank Retail FRIA-2026-AI-001, conducted January 2026, approved by Chief Risk Officer. Covers impact on right to non-discrimination, right to effective remedy, right to privacy. Available on request to competent authorities.",
+
+  "intended_use_monitoring": "Dedicated AI monitoring dashboard tracks: (1) daily score distribution vs baseline, (2) override rate by underwriters, (3) complaint rate correlated with model decisions, (4) subgroup approval/denial ratios. Anomaly alerts route to AI Risk team within 4 hours. Monthly review meeting between AI Risk and Credit Operations. Escalation to Risk Committee if override rate exceeds 15% or if any subgroup denial ratio exceeds 1.25x the population average.",
+
+  "lifecycle_status": "production",
+  "published_at": "2026-04-01T10:00:00Z",
+  "last_updated_at": "2026-05-10T09:00:00Z",
+
+  "update_changelog": [
+    {
+      "version": "3.2.1",
+      "date": "2026-05-10",
+      "summary": "Re-validated after provider Q1 2026 recalibration. Updated evaluation_metrics with fresh Eurobank validation cohort results.",
+      "fields_changed": ["evaluation_metrics", "evaluation_summary"]
+    },
+    {
+      "version": "3.2.0",
+      "date": "2026-04-01",
+      "summary": "Initial deployer disclosure for Acme Credit Risk Scorer v3.2 series deployment at Eurobank Retail.",
+      "fields_changed": []
+    }
+  ],
+
+  "incidents": [],
+
+  "attestation": {
+    "attestor_name": "Klaus Weber",
+    "attestor_role": "Head of AI Risk, Eurobank Retail S.A.",
+    "attestor_email": "ai-risk@eurobank-retail.example.com",
+    "attestation_date": "2026-05-10",
+    "attestation_status": "self_attested",
+    "statement": "I attest that this deployer disclosure accurately reflects Eurobank Retail's deployment of the Acme Credit Risk Scorer as of the attestation date, including our monitoring arrangements, human oversight measures, and fundamental rights impact assessment."
+  },
+
+  "framework_mappings": {
+    "nist_ai_rmf": ["GOVERN-1.1", "MAP-2.3", "MEASURE-2.7", "MANAGE-2.2"],
+    "iso_iec_42001": ["A.6.2.6", "A.7.4"]
+  }
+}
