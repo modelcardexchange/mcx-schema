@@ -720,9 +720,10 @@
           "publisher": {
             "properties": { "role": { "const": "deployer" } },
             "required": ["role"]
-          }
+          },
+          "risk_class": { "const": "high_risk" }
         },
-        "required": ["publisher"]
+        "required": ["publisher", "risk_class"]
       },
       "then": {
         "required": [
