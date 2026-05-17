@@ -153,6 +153,19 @@ We particularly welcome contributions on:
 - Example records covering more risk classes and verticals
 - Translations of field descriptions
 
+## Regulatory sources
+
+This schema's field-level citations reference the following official sources:
+
+| Source | URL |
+|--------|-----|
+| EU AI Act — EUR-Lex (legally binding) | https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng |
+| EU AI Act — Official summary | https://eur-lex.europa.eu/EN/legal-content/summary/rules-for-trustworthy-artificial-intelligence-in-the-eu.html |
+| AI Act Single Information Platform | https://ai-act-service-desk.ec.europa.eu/en |
+| GPAI provider guidelines | https://digital-strategy.ec.europa.eu/en/policies/guidelines-gpai-providers |
+
+**Note (May 2026):** The "Digital Omnibus on AI" ([Council agreement, 7 May 2026](https://www.consilium.europa.eu/en/press/press-releases/2026/05/07/artificial-intelligence-council-and-parliament-agree-to-simplify-and-streamline-rules/)) extends high-risk application deadlines by up to 16 months. Schema obligations are substantively unchanged; only enforcement timelines shift. We will update once the amendment is published in the Official Journal.
+
 ## Disclaimer
 
 This schema is a community draft published for review and adoption. It is provided "as is" without warranty of any kind. Field references to the EU AI Act, NIST AI RMF, ISO/IEC 42001, and other frameworks are best-effort interpretations intended to aid practitioners. They are not legal opinions. Organisations using this schema for regulatory compliance should validate field mappings with qualified counsel and competent authorities.
