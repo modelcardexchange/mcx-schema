@@ -2,156 +2,106 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://modelcardexchange.io/schemas/events/mcx-event-v0.1.schema.json",
   "title": "MCX Webhook Event",
-  "description": "Envelope for all events propagated from the MCX registry to subscribed buyers. Specific event types are differentiated via the 'type' field.",
+  "description": "Envelope for events delivered from the MCX registry to subscribed organisations' webhook endpoints. Specific event types are differentiated via the 'event_type' field. This schema documents the shape the delivery worker actually sends (see worker/deliver.py build_payload) — not an aspirational design.",
   "type": "object",
-  "required": ["event_id", "type", "occurred_at", "schema_version", "disclosure_id", "model_id", "publisher_name", "payload"],
+  "required": ["event_id", "event_type", "occurred_at", "payload"],
   "properties": {
     "event_id": {
       "type": "string",
       "format": "uuid",
-      "description": "Unique identifier for this event delivery. Idempotency key — subscribers may receive duplicates and should dedupe on this field."
+      "description": "Unique identifier for this event. Idempotency key — subscribers may receive duplicates (retries) and must dedupe on this field. Also delivered as the X-MCX-Event-ID header."
     },
-    "type": {
+    "event_type": {
       "type": "string",
       "enum": [
         "disclosure.published",
         "disclosure.updated",
-        "disclosure.expired",
-        "risk_class.changed",
-        "conformity.changed",
-        "training_data.changed",
         "incident.reported",
-        "access.granted"
+        "incident.critical_alert",
+        "incident.updated",
+        "subscription.snapshot"
       ],
-      "description": "The event type. Subscribers may filter on this."
+      "description": "The event type. Also delivered as the X-MCX-Event-Type header. Only business-category, disclosure-aggregate events fan out to webhooks — the values above are the complete delivered set in v0.1. See $defs/planned_event_types for designed-but-not-yet-emitted types."
     },
     "occurred_at": {
       "type": "string",
       "format": "date-time",
       "description": "ISO 8601 timestamp of when the event occurred at the source registry."
     },
-    "schema_version": {
+    "disclosure_slug": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "MCX schema version of the disclosure this event refers to."
-    },
-    "disclosure_id": {
-      "type": "string",
-      "format": "uuid",
-      "description": "ID of the disclosure record this event relates to."
+      "description": "Public slug of the disclosure this event relates to (e.g. 'dsc_ZDK3527R'). Present on every disclosure-aggregate event so subscribers can attribute the event to a record regardless of event type. Fetch the current record via GET /api/v1/disclosures/{disclosure_slug}."
     },
     "model_id": {
       "type": "string",
-      "description": "Stable provider-controlled model identifier."
-    },
-    "publisher_name": {
-      "type": "string",
-      "description": "Name of the organisation that published the disclosure record."
-    },
-    "disclosure_url": {
-      "type": "string",
-      "format": "uri",
-      "description": "URL to retrieve the current full disclosure record via the registry API."
+      "description": "Stable provider-controlled model identifier (e.g. 'meridian-credit-risk'). Present on every disclosure-aggregate event alongside disclosure_slug."
     },
     "payload": {
       "type": "object",
-      "description": "Event-type-specific payload. Shape depends on event type — see schemas/events/types.md for per-type definitions and human-readable trigger semantics.",
+      "description": "Event-type-specific payload. Shape depends on event_type — see schemas/events/types.md for per-type definitions and human-readable trigger semantics.",
       "oneOf": [
-        { "$ref": "#/$defs/disclosure_published" },
-        { "$ref": "#/$defs/disclosure_updated" },
-        { "$ref": "#/$defs/disclosure_expired" },
-        { "$ref": "#/$defs/risk_class_changed" },
-        { "$ref": "#/$defs/conformity_changed" },
-        { "$ref": "#/$defs/training_data_changed" },
+        { "$ref": "#/$defs/record_payload" },
         { "$ref": "#/$defs/incident_reported" },
-        { "$ref": "#/$defs/access_granted" }
+        { "$ref": "#/$defs/incident_updated" }
       ]
     }
   },
 
   "$defs": {
-    "disclosure_published": {
+    "record_payload": {
       "type": "object",
-      "description": "Fired the first time a disclosure record is published.",
-      "required": ["version"],
+      "description": "Payload for disclosure.published, disclosure.updated, and subscription.snapshot — a snapshot of the disclosure's current top-level state (see api/services/disclosure_service.py build_record_payload). It is a current-state snapshot, NOT a diff: to see what changed between versions, call GET /api/v1/disclosures/{slug}/versions/diff?from={from_version_slug}&to={to_version_slug}.",
+      "required": ["disclosure_slug", "version_slug", "version_number", "model_id"],
       "properties": {
-        "version": { "type": "string" }
-      }
-    },
-    "disclosure_updated": {
-      "type": "object",
-      "description": "Fired on any change to an existing disclosure record. fields_changed lists modified top-level fields.",
-      "required": ["from_version", "to_version", "fields_changed"],
-      "properties": {
-        "from_version": { "type": "string" },
-        "to_version": { "type": "string" },
-        "fields_changed": {
-          "type": "array",
-          "items": { "type": "string" }
+        "disclosure_slug": { "type": "string" },
+        "version_slug": { "type": "string", "description": "Slug of the specific immutable version this event refers to." },
+        "version_number": { "type": "integer", "description": "Monotonic version number of the disclosure record (1 = first publish)." },
+        "model_id": { "type": "string" },
+        "risk_class": {
+          "type": ["string", "null"],
+          "enum": ["prohibited", "high_risk", "limited_risk", "minimal", "gpai", "gpai_systemic", null]
         },
-        "summary": { "type": "string" }
-      }
-    },
-    "disclosure_expired": {
-      "type": "object",
-      "description": "Fired when a disclosure record passes its review-by date without update.",
-      "required": ["last_updated_at", "expired_at"],
-      "properties": {
-        "last_updated_at": { "type": "string", "format": "date-time" },
-        "expired_at": { "type": "string", "format": "date-time" }
-      }
-    },
-    "risk_class_changed": {
-      "type": "object",
-      "description": "Fired when a model's EU AI Act risk classification changes.",
-      "required": ["from_class", "to_class"],
-      "properties": {
-        "from_class": {
-          "type": "string",
-          "enum": ["prohibited", "high_risk", "limited_risk", "minimal", "gpai", "gpai_systemic"]
-        },
-        "to_class": {
-          "type": "string",
-          "enum": ["prohibited", "high_risk", "limited_risk", "minimal", "gpai", "gpai_systemic"]
-        },
-        "rationale": { "type": "string" }
-      }
-    },
-    "conformity_changed": {
-      "type": "object",
-      "description": "Fired when conformity assessment or CE marking status changes.",
-      "properties": {
-        "from_status": { "type": ["string", "null"] },
-        "to_status": { "type": ["string", "null"] },
-        "ce_marking_status": { "type": ["string", "null"] }
-      }
-    },
-    "training_data_changed": {
-      "type": "object",
-      "description": "Fired when training data sources, scope, or cutoff are materially updated.",
-      "properties": {
-        "summary": { "type": "string" },
-        "new_cutoff_date": { "type": ["string", "null"], "format": "date" }
+        "lifecycle_status": { "type": ["string", "null"] },
+        "publisher_role": { "type": ["string", "null"] }
       }
     },
     "incident_reported": {
       "type": "object",
-      "description": "Fired when a serious incident under Article 73 is reported.",
+      "description": "Payload for incident.reported and incident.critical_alert (the latter fired when severity is 'high' or 'serious'). Aligned to EU AI Act Article 73 reporting; the registry propagates the fact of the report to subscribers.",
       "required": ["incident_id", "severity"],
+      "additionalProperties": false,
       "properties": {
-        "incident_id": { "type": "string" },
+        "incident_id": { "type": "string", "description": "Vendor-controlled incident identifier (matches incidents[].incident_id in the disclosure)." },
         "severity": {
           "type": "string",
           "enum": ["low", "medium", "high", "serious"]
         },
-        "summary": { "type": "string" }
+        "summary": { "type": "string", "description": "Short human description (sourced from the incident's description)." }
       }
     },
-    "access_granted": {
+    "incident_updated": {
       "type": "object",
-      "description": "Fired when a vendor grants a buyer access to a gated disclosure record.",
+      "description": "Payload for incident.updated — fired when an existing incident's status changes.",
+      "required": ["incident_id", "incident_index", "severity", "status"],
       "properties": {
-        "buyer_organisation_id": { "type": "string" }
+        "incident_id": { "type": "string" },
+        "incident_index": { "type": "integer", "description": "Index of the incident within the disclosure's incidents array." },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "serious"]
+        },
+        "status": { "type": "string", "description": "New incident status (e.g. 'open', 'mitigating', 'resolved')." }
+      }
+    },
+    "planned_event_types": {
+      "description": "PLANNED / NOT YET EMITTED (v0.2 candidates). These event types are part of the designed event vocabulary but the registry does NOT currently emit them — do not build hard dependencies on receiving them in v0.1. When implemented they will use the same envelope (event_id, event_type, occurred_at, disclosure_slug, model_id, payload).",
+      "type": "object",
+      "properties": {
+        "disclosure.expired": { "description": "Planned: fired when a disclosure passes its review-by date without update." },
+        "risk_class.changed": { "description": "Planned: fired when a model's EU AI Act risk_class changes. Designed payload: {from_class, to_class, rationale}." },
+        "conformity.changed": { "description": "Planned: fired when conformity assessment or CE marking status changes." },
+        "training_data.changed": { "description": "Planned: fired when training data sources, scope, or cutoff are materially updated." },
+        "access.granted": { "description": "Planned for webhook delivery: today this is emitted as an access-category event and does NOT fan out to webhooks." }
       }
     }
   },

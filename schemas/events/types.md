@@ -2,9 +2,37 @@
 
 Human-readable companion to `mcx-event-v0.1.schema.json`. The JSON Schema is the authoritative source for shape; this document explains intent, trigger conditions, and payload semantics.
 
-Every event uses the common envelope (`event_id`, `type`, `occurred_at`, `schema_version`, `disclosure_id`, `model_id`, `publisher_name`, optional `disclosure_url`, plus the type-specific `payload`). Subscribers must dedupe on `event_id` — the same logical state change may be redelivered.
+This document describes the events the registry **actually delivers** to webhook endpoints in v0.1 — the shape the delivery worker (`worker/deliver.py`) sends, not an aspirational design. Designed-but-not-yet-emitted types are listed under [Planned event types](#planned-event-types).
 
 This document is part of the MCX schema package, subject to the same Apache 2.0 licence and the same disclaimers in the main README. It is not legal advice.
+
+---
+
+## The envelope
+
+Every delivered event uses a common JSON envelope:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `event_id` | uuid | yes | Unique per event. Idempotency key — dedupe on this. Also the `X-MCX-Event-ID` header. |
+| `event_type` | string | yes | One of the types below. Also the `X-MCX-Event-Type` header. |
+| `occurred_at` | date-time | yes | ISO 8601 timestamp at the source registry. |
+| `disclosure_slug` | string | yes* | Public slug of the disclosure (e.g. `dsc_ZDK3527R`). Present on every disclosure event. |
+| `model_id` | string | yes* | Stable provider-controlled model identifier. Present on every disclosure event. |
+| `payload` | object | yes | Type-specific payload (see each type below). |
+
+\* `disclosure_slug` and `model_id` are present on all currently-delivered events (they are all disclosure-aggregate events). They let a subscriber attribute the event to a model **without** parsing the type-specific payload.
+
+> **Note:** only `event_id`, `event_type`, `occurred_at`, and `payload` are guaranteed for every conceivable event; `disclosure_slug` / `model_id` are added for disclosure-aggregate events, which is every type delivered in v0.1.
+
+Delivery headers (see the API Surface "Webhook Signature Verification" section):
+
+- `X-MCX-Event-ID` — mirrors `event_id`
+- `X-MCX-Event-Type` — mirrors `event_type`
+- `X-MCX-Timestamp` — Unix seconds the signature was computed
+- `X-MCX-Signature` — `sha256=<hex>` HMAC-SHA256 over `{timestamp}.{body}`
+
+**Subscribers must dedupe on `event_id`** — the same logical state change may be redelivered (retries).
 
 ---
 
@@ -12,197 +40,155 @@ This document is part of the MCX schema package, subject to the same Apache 2.0 
 
 **Fires when:** a disclosure record for a model is published to the registry for the first time.
 
-**Payload:**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `version` | string | yes | The model version this disclosure documents (e.g. `1.4.0`). |
-
-**Example payload:**
-```json
-{
-  "version": "1.4.0"
-}
-```
-
-**Notes for subscribers:** treat as a brand-new model arrival in the buyer's vendor inventory. There is no `from_version`; this is the first state.
+**Payload:** the shared *record snapshot* (see below).
 
 ---
 
 ## `disclosure.updated`
 
-**Fires when:** any field in an existing disclosure record changes. The version of the *disclosure record* itself is incremented; the underlying *model* version may or may not have changed (use `risk_class.changed`, `training_data.changed`, etc. for substantive triggers).
+**Fires when:** an existing disclosure record is edited and a new immutable version is written.
 
-**Payload:**
+**Payload:** the shared *record snapshot* (see below).
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `from_version` | string | yes | Disclosure record version before the change. |
-| `to_version` | string | yes | Disclosure record version after the change. |
-| `fields_changed` | string[] | yes | Names of top-level fields that changed. May be empty if metadata-only update. |
-| `summary` | string | no | Free-text human summary. Sourced from the vendor's `update_changelog` entry if available. |
-
-**Example payload:**
-```json
-{
-  "from_version": "1.3.2",
-  "to_version": "1.4.0",
-  "fields_changed": ["evaluation_metrics", "accuracy_specification"],
-  "summary": "Recalibration after Q1 monitoring detected drift."
-}
-```
-
-**Notes for subscribers:** use `fields_changed` to drive selective re-review in GRC tools. A `disclosure.updated` event with only metadata changes (e.g. typo fix in `model_summary`) may be filtered out by buyer-side rules.
+> **No diff in the payload.** The payload is a snapshot of the disclosure's *current* state — it does not contain old/new value pairs or a list of changed fields. To compute what changed between two versions, call:
+> ```
+> GET /api/v1/disclosures/{disclosure_slug}/versions/diff?from={from_version_slug}&to={to_version_slug}
+> ```
+> Use `GET /api/v1/disclosures/{disclosure_slug}/versions` to obtain the version slugs (newest first); the prior version's slug is the `from`, the current event's `version_slug` is the `to`.
 
 ---
 
-## `disclosure.expired`
+## `subscription.snapshot`
 
-**Fires when:** a disclosure record passes its review-by date without an update. The exact review cadence is registry policy; default in v0.1 is 12 months from `last_updated_at`.
+**Fires when:** a subscriber newly subscribes to a disclosure — a one-shot snapshot is delivered to that subscriber so they start with current state rather than waiting for the next change. Targeted: only the subscribing org's endpoint receives it.
 
-**Payload:**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `last_updated_at` | date-time | yes | The disclosure's `last_updated_at` value at the moment of expiry. |
-| `expired_at` | date-time | yes | Timestamp at which the registry marked the record expired. |
-
-**Example payload:**
-```json
-{
-  "last_updated_at": "2025-04-15T10:00:00Z",
-  "expired_at": "2026-04-15T10:00:00Z"
-}
-```
-
-**Notes for subscribers:** treat as a procurement signal. The model may still be in production; the disclosure has gone stale. Trigger a vendor outreach.
+**Payload:** the shared *record snapshot* (see below).
 
 ---
 
-## `risk_class.changed`
+### Shared record snapshot payload
 
-**Fires when:** a model's EU AI Act `risk_class` value changes. Material event — buyers may have classification-driven controls that need to fire.
-
-**Payload:**
+Used by `disclosure.published`, `disclosure.updated`, and `subscription.snapshot` (built by `build_record_payload` in `api/services/disclosure_service.py`):
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `from_class` | enum | yes | Previous `risk_class` value. |
-| `to_class` | enum | yes | New `risk_class` value. |
-| `rationale` | string | no | Vendor-provided explanation. Should be drawn from `classification_rationale`. |
+| `disclosure_slug` | string | yes | Public slug of the disclosure. |
+| `version_slug` | string | yes | Slug of the specific immutable version this event refers to. |
+| `version_number` | integer | yes | Monotonic version number (1 = first publish). |
+| `model_id` | string | yes | Stable model identifier. |
+| `risk_class` | enum \| null | no | `prohibited` \| `high_risk` \| `limited_risk` \| `minimal` \| `gpai` \| `gpai_systemic`. |
+| `lifecycle_status` | string \| null | no | e.g. `production`. |
+| `publisher_role` | string \| null | no | e.g. `provider`, `deployer`. |
 
-Enum values for `from_class` and `to_class`: `prohibited`, `high_risk`, `limited_risk`, `minimal`, `gpai`, `gpai_systemic`.
-
-**Example payload:**
+**Example body:**
 ```json
 {
-  "from_class": "limited_risk",
-  "to_class": "high_risk",
-  "rationale": "Use case extended into Annex III §5(b) creditworthiness scope."
+  "event_id": "6455475a-65d4-424b-911f-aa5fd31bb262",
+  "event_type": "disclosure.updated",
+  "occurred_at": "2026-05-28T11:45:03.036405+00:00",
+  "disclosure_slug": "dsc_ZDK3527R",
+  "model_id": "meridian-credit-risk",
+  "payload": {
+    "disclosure_slug": "dsc_ZDK3527R",
+    "version_slug": "ver_6FW28XGS",
+    "version_number": 4,
+    "model_id": "meridian-credit-risk",
+    "risk_class": "high_risk",
+    "lifecycle_status": "production",
+    "publisher_role": "provider"
+  }
 }
 ```
-
-**Notes for subscribers:** treat any move *into* `high_risk`, `gpai_systemic`, or `prohibited` as a material event. Conditional required fields will also have changed (`bias_assessment`, `monitoring_plan`, etc.) — pair this with a `disclosure.updated` event in the same logical operation.
-
----
-
-## `conformity.changed`
-
-**Fires when:** the `conformity_assessment_type` or `ce_marking_status` field changes. Distinct from `risk_class.changed` — a model may keep its risk class but move from `ce_marking_status: pending` to `affixed`.
-
-**Payload:**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `from_status` | string \| null | no | Previous status; null if not previously set. |
-| `to_status` | string \| null | no | New status. |
-| `ce_marking_status` | string \| null | no | Current CE marking status (mirrors disclosure field). |
-
-**Example payload:**
-```json
-{
-  "from_status": "pending",
-  "to_status": "affixed",
-  "ce_marking_status": "affixed"
-}
-```
-
-**Notes for subscribers:** procurement teams that gate vendor approval on CE-marking status should subscribe to this event specifically.
-
----
-
-## `training_data.changed`
-
-**Fires when:** training data sources, scope, or cutoff are materially updated. Driven by changes to `training_data_description`, `training_data_source`, or `training_time_period`.
-
-**Payload:**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `summary` | string | no | Vendor-provided change summary. |
-| `new_cutoff_date` | date \| null | no | Updated training cutoff if changed. |
-
-**Example payload:**
-```json
-{
-  "summary": "Added Q1 2026 transactional data; cutoff extended.",
-  "new_cutoff_date": "2026-03-31"
-}
-```
-
-**Notes for subscribers:** for buyers with data-lineage compliance obligations (GDPR, sector-specific record-of-processing), this event triggers downstream artefact regeneration.
 
 ---
 
 ## `incident.reported`
 
-**Fires when:** a serious incident is added to the disclosure record's `incidents` array. Aligned to EU AI Act Article 73 reporting; the registry propagates the *fact* of the report to subscribed buyers — it does not interpose between the vendor and the relevant market surveillance authority.
+**Fires when:** a new incident is added to the disclosure record's `incidents` array (severity `low` or `medium`). Aligned to EU AI Act Article 73 reporting; the registry propagates the *fact* of the report to subscribed buyers — it does not interpose between the vendor and the relevant market surveillance authority.
 
 **Payload:**
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `incident_id` | string | yes | Vendor-controlled incident identifier. Matches `incidents[].incident_id` in the disclosure. |
+| `incident_id` | string | yes | Vendor-controlled incident identifier (matches `incidents[].incident_id`). |
 | `severity` | enum | yes | `low`, `medium`, `high`, or `serious`. |
-| `summary` | string | no | Short human description. |
+| `summary` | string | no | Short human description (the incident's description). |
 
-**Example payload:**
+**Example body:**
 ```json
 {
-  "incident_id": "INC-2026-014",
-  "severity": "high",
-  "summary": "Calibration drift on retail credit cohort exceeded threshold; model held."
+  "event_id": "c4997db7-9ac1-4927-aae2-61f5c1a3a3b2",
+  "event_type": "incident.reported",
+  "occurred_at": "2026-05-28T12:47:22.196854+00:00",
+  "disclosure_slug": "dsc_ZDK3527R",
+  "model_id": "meridian-credit-risk",
+  "payload": {
+    "incident_id": "inc_N422EA7R",
+    "severity": "low",
+    "summary": "someone fell over"
+  }
 }
 ```
-
-**Notes for subscribers:** `serious` severity should trigger immediate review per the buyer's incident response process. `low`/`medium` may aggregate into a periodic digest.
 
 ---
 
-## `access.granted`
+## `incident.critical_alert`
 
-**Fires when:** a vendor grants a buyer access to a `record_visibility = "verified_buyers_only"` or `"private"` disclosure record. Governance event, not a content event.
+**Fires when:** a new incident is added with severity `high` or `serious`. Identical payload shape to `incident.reported`; the distinct event type lets subscribers route urgent incidents differently (e.g. page on-call vs. periodic digest).
+
+**Payload:** same as `incident.reported`.
+
+---
+
+## `incident.updated`
+
+**Fires when:** an existing incident's status changes (e.g. `open` → `mitigating` → `resolved`).
 
 **Payload:**
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `buyer_organisation_id` | string | no | The buyer organisation being granted access. |
+| `incident_id` | string | yes | The incident identifier. |
+| `incident_index` | integer | yes | Index of the incident within the disclosure's `incidents` array. |
+| `severity` | enum | yes | `low`, `medium`, `high`, or `serious`. |
+| `status` | string | yes | New incident status. |
 
-**Example payload:**
+**Example body:**
 ```json
 {
-  "buyer_organisation_id": "mcx-org-bigbank-002"
+  "event_id": "c4997db7-9ac1-4927-aae2-61f5c1a3a3b3",
+  "event_type": "incident.updated",
+  "occurred_at": "2026-05-28T12:47:22.196854+00:00",
+  "disclosure_slug": "dsc_ZDK3527R",
+  "model_id": "meridian-credit-risk",
+  "payload": {
+    "incident_id": "inc_HJ873BWW",
+    "incident_index": 0,
+    "severity": "low",
+    "status": "mitigating"
+  }
 }
 ```
 
-**Notes for subscribers:** this event is delivered to the *granted* buyer organisation. It is a signal to begin pulling the disclosure record via the registry API; the event itself does not carry the disclosure body.
+---
+
+## Planned event types
+
+These are part of the designed event vocabulary but the registry does **not** emit them as webhook deliveries in v0.1. Do not build hard dependencies on receiving them yet. When implemented they will reuse the common envelope.
+
+| Type | Status | Designed intent |
+|---|---|---|
+| `disclosure.expired` | planned | Disclosure passed its review-by date without update. |
+| `risk_class.changed` | planned | A model's `risk_class` changed. Designed payload `{from_class, to_class, rationale}`. |
+| `conformity.changed` | planned | Conformity assessment or CE marking status changed. |
+| `training_data.changed` | planned | Training data sources, scope, or cutoff materially updated. |
+| `access.granted` | emitted but not delivered | Today emitted as an `access`-category event; it does **not** fan out to webhooks (only `business`-category, disclosure-aggregate events do). |
 
 ---
 
 ## Common subscriber guidance
 
 - **Idempotency.** Always dedupe on `event_id`. Retries will redeliver the same `event_id`.
-- **Ordering.** Events are best-effort ordered by `occurred_at` but are not guaranteed strictly sequential. Use `disclosure_id` + `to_version` (where applicable) as the secondary ordering key.
-- **Recovery.** A subscriber that has missed events should re-fetch the current full disclosure record via the registry API, not replay events. Events are propagation hints; the disclosure record is the source of truth.
-- **Schema versioning.** The `schema_version` field on the envelope identifies the MCX schema version of the disclosure being referenced. Multi-version-aware subscribers should branch on this.
+- **Attribution.** Use the envelope `disclosure_slug` + `model_id` to attribute any event to a record/model without parsing the payload.
+- **Snapshots, not diffs.** `disclosure.*` payloads are current-state snapshots. For field-level change detail, call the versions/diff endpoint.
+- **Recovery.** A subscriber that has missed events should re-fetch the current record via `GET /api/v1/disclosures/{disclosure_slug}`, not replay events. Events are propagation hints; the disclosure record is the source of truth.
