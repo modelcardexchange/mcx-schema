@@ -102,6 +102,45 @@ Used by `disclosure.published`, `disclosure.updated`, and `subscription.snapshot
 
 ---
 
+## `risk_class.changed`
+
+**Fires when:** an edit to a disclosure changes its `risk_class`. Emitted by `update_disclosure_tx` **alongside** the `disclosure.updated` event for the same edit (same version).
+
+**Payload:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `disclosure_slug` | string | yes | Public slug of the disclosure. |
+| `version_slug` | string | yes | Slug of the new immutable version. |
+| `version_number` | integer | yes | Version number of the new version. |
+| `model_id` | string | yes | Stable model identifier. |
+
+> The payload carries no `from`/`to` class. Compute the change via the versions/diff endpoint, or read the current `risk_class` from the record.
+
+---
+
+## `conformity.changed`
+
+**Fires when:** an edit changes `conformity_assessment_type` or `ce_marking_status`. Emitted **alongside** `disclosure.updated`.
+
+**Payload:** same four fields as `risk_class.changed`.
+
+---
+
+## `training_data.changed`
+
+**Fires when:** an edit changes any of `training_data_description`, `training_data_source`, `training_time_period`, `personal_data_usage`, `sensitive_data_usage`, or `known_data_gaps`. Emitted **alongside** `disclosure.updated`.
+
+**Payload:** same four fields as `risk_class.changed`.
+
+---
+
+### Co-firing on edits
+
+A single edit (`PATCH /api/v1/disclosures/{slug}`) always emits `disclosure.updated`, plus **one** granular `*.changed` event per changed field-group (risk class / conformity / training data). One edit therefore delivers **1–4** webhook events. `disclosure.updated` is the catch-all "re-fetch" signal; the granular events let a subscriber route on a specific concern without diffing. `incident.*` and `subscription.snapshot` never bundle.
+
+---
+
 ## `incident.reported`
 
 **Fires when:** a new incident is added to the disclosure record's `incidents` array (severity `low` or `medium`). Aligned to EU AI Act Article 73 reporting; the registry propagates the *fact* of the report to subscribed buyers — it does not interpose between the vendor and the relevant market surveillance authority.
@@ -179,9 +218,6 @@ These are part of the designed event vocabulary but the registry does **not** em
 | Type | Status | Designed intent |
 |---|---|---|
 | `disclosure.expired` | planned | Disclosure passed its review-by date without update. |
-| `risk_class.changed` | planned | A model's `risk_class` changed. Designed payload `{from_class, to_class, rationale}`. |
-| `conformity.changed` | planned | Conformity assessment or CE marking status changed. |
-| `training_data.changed` | planned | Training data sources, scope, or cutoff materially updated. |
 | `access.granted` | emitted but not delivered | Today emitted as an `access`-category event; it does **not** fan out to webhooks (only `business`-category, disclosure-aggregate events do). |
 
 ---

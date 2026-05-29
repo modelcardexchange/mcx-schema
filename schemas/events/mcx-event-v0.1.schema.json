@@ -16,12 +16,15 @@
       "enum": [
         "disclosure.published",
         "disclosure.updated",
+        "risk_class.changed",
+        "conformity.changed",
+        "training_data.changed",
         "incident.reported",
         "incident.critical_alert",
         "incident.updated",
         "subscription.snapshot"
       ],
-      "description": "The event type. Also delivered as the X-MCX-Event-Type header. Only business-category, disclosure-aggregate events fan out to webhooks — the values above are the complete delivered set in v0.1. See $defs/planned_event_types for designed-but-not-yet-emitted types."
+      "description": "The event type. Also delivered as the X-MCX-Event-Type header. Only business-category, disclosure-aggregate events fan out to webhooks — the values above are the complete delivered set in v0.1. The three *.changed events co-fire alongside disclosure.updated on an edit (one per changed field-group). See $defs/planned_event_types for designed-but-not-yet-emitted types."
     },
     "occurred_at": {
       "type": "string",
@@ -50,7 +53,7 @@
   "$defs": {
     "record_payload": {
       "type": "object",
-      "description": "Payload for disclosure.published, disclosure.updated, and subscription.snapshot — a snapshot of the disclosure's current top-level state (see api/services/disclosure_service.py build_record_payload). It is a current-state snapshot, NOT a diff: to see what changed between versions, call GET /api/v1/disclosures/{slug}/versions/diff?from={from_version_slug}&to={to_version_slug}.",
+      "description": "Payload for disclosure.published, disclosure.updated, and subscription.snapshot — a snapshot of the disclosure's current top-level state (see api/services/disclosure_service.py build_record_payload). The three *.changed events (risk_class/conformity/training_data) emit the same shape with only the four required fields populated (disclosure_slug, version_slug, version_number, model_id). It is a current-state snapshot, NOT a diff: to see what changed between versions, call GET /api/v1/disclosures/{slug}/versions/diff?from={from_version_slug}&to={to_version_slug}.",
       "required": ["disclosure_slug", "version_slug", "version_number", "model_id"],
       "properties": {
         "disclosure_slug": { "type": "string" },
@@ -98,9 +101,6 @@
       "type": "object",
       "properties": {
         "disclosure.expired": { "description": "Planned: fired when a disclosure passes its review-by date without update." },
-        "risk_class.changed": { "description": "Planned: fired when a model's EU AI Act risk_class changes. Designed payload: {from_class, to_class, rationale}." },
-        "conformity.changed": { "description": "Planned: fired when conformity assessment or CE marking status changes." },
-        "training_data.changed": { "description": "Planned: fired when training data sources, scope, or cutoff are materially updated." },
         "access.granted": { "description": "Planned for webhook delivery: today this is emitted as an access-category event and does NOT fan out to webhooks." }
       }
     }
